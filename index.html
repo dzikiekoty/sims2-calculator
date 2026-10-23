@@ -214,9 +214,16 @@
   @media (max-width: 760px) {
     .panel { padding: 20px 16px; }
     .interests { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; gap: 18px; }
-    .trait .row { grid-template-columns: 64px 1fr 64px; gap: 8px; }
-    .trait .left, .trait .right { font-size: 0.85rem; }
-    .bars { gap: 3px; }
+    /* phones: trait names on one line, full-width bars below (same as interests) */
+    .trait .row {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "left right" "bars bars";
+      gap: 6px 10px;
+    }
+    .trait .left { grid-area: left; text-align: left; }
+    .trait .right { grid-area: right; text-align: right; }
+    .trait .bars { grid-area: bars; }
+    .bars { gap: 4px; }
     .bars button { height: 40px; border-radius: 7px; }
     .dots { gap: 4px; }
     .dots button { height: 40px; border-radius: 7px; }
