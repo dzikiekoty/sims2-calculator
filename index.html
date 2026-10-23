@@ -205,6 +205,13 @@
   .new-sim svg { color: var(--green-bright); }
   .new-sim:hover { filter: brightness(1.15); }
 
+  .toggle {
+    font: inherit; font-size: 0.9rem; font-weight: 700; color: var(--text);
+    background: var(--btn); border: 1px solid var(--btn-border); border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; flex-shrink: 0;
+  }
+  .toggle:hover { border-color: var(--green); }
+
   footer { text-align: center; color: var(--muted); font-size: 0.85rem; }
 
   [hidden] { display: none !important; }
@@ -302,9 +309,12 @@
     </section>
 
     <section class="panel">
-      <h2>Career Match</h2>
+      <div class="panel-head">
+        <h2>Career Match</h2>
+        <button type="button" class="toggle" id="toggle-custom" aria-pressed="false" aria-label="Hide or show custom careers">Hide custom careers</button>
+      </div>
       <p class="sub" id="car-sub">Score = 2 × first interest + second interest + 5 points if the career matches the main aspiration from the Aspiration tab.</p>
-      <p class="tip">Careers marked <span class="tag">CUSTOM</span> are not part of the game – you need to download them yourself as custom content.</p>
+      <p class="tip" id="custom-tip">Careers marked <span class="tag">CUSTOM</span> are not part of the game – you need to download them yourself as custom content.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Career</th><th class="hide-sm">Interests</th><th class="hide-sm">Aspiration</th><th class="num">Score</th></tr></thead>
@@ -432,6 +442,9 @@ INTERESTS.forEach(i => interests[i] = DEFAULT);
 // (the Excel author types 5 next to the Sim's aspiration, column B rows 1-6).
 const MAIN_ASPIRATION_POINTS = 5;
 
+// Show careers marked as custom content (can be hidden with a button)
+let showCustom = true;
+
 const clamp = v => Math.max(0, Math.min(10, Math.round(Number(v) || 0)));
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -549,7 +562,7 @@ function render() {
 
   // careers (sorted, best first)
   // Excel: score = 2 x first interest + second interest + points typed in for that aspiration
-  const carPick = pickTop(CAREERS.map(([name, i1, i2, aspName, custom]) => ({
+  const carPick = pickTop(CAREERS.filter(c => showCustom || !c[4]).map(([name, i1, i2, aspName, custom]) => ({
     name, i1, i2, aspName, custom,
     score: 2 * interests[i1] + interests[i2] + (simAsps.includes(aspName) ? MAIN_ASPIRATION_POINTS : 0),
   })), SECONDARY_THRESHOLD.career);
@@ -570,6 +583,12 @@ function render() {
       <td class="num">${h.score}</td>
     </tr>`).join("");
 
+  // custom careers button + tip
+  const tg = document.getElementById("toggle-custom");
+  tg.innerHTML = (showCustom ? "Hide" : "Show") + ' custom<span class="hide-sm"> careers</span>';
+  tg.setAttribute("aria-pressed", String(!showCustom));
+  document.getElementById("custom-tip").hidden = !showCustom;
+
   // disable - / + at the limits
   document.querySelectorAll("[data-step]").forEach(b => {
     const v = getValue(b.dataset.id);
@@ -584,16 +603,20 @@ function render() {
    ========================================================= */
 const KEY_P = "sims2-personality-points";
 const KEY_I = "sims2-interest-points";
+const KEY_C = "sims2-show-custom-careers";
 function save() {
   try {
     localStorage.setItem(KEY_P, JSON.stringify(personality));
     localStorage.setItem(KEY_I, JSON.stringify(interests));
+    localStorage.setItem(KEY_C, JSON.stringify(showCustom));
   } catch (e) { /* saving not available – ignore */ }
 }
 function load() {
   try {
     const p = JSON.parse(localStorage.getItem(KEY_P) || "{}");
     Object.keys(personality).forEach(k => { if (k in p) personality[k] = clamp(p[k]); });
+    const c = localStorage.getItem(KEY_C);
+    if (c !== null) showCustom = JSON.parse(c) !== false;
     const i = JSON.parse(localStorage.getItem(KEY_I) || "{}");
     // Replit stored keys like "scifi"; map them back to names
     Object.keys(interests).forEach(name => {
@@ -654,6 +677,10 @@ document.getElementById("new-sim").addEventListener("click", () =>
       showTab("tab-asp");
       window.scrollTo({ top: 0 });
     }));
+
+document.getElementById("toggle-custom").addEventListener("click", () => {
+  showCustom = !showCustom; render();
+});
 
 // tabs
 const tabs = [["tab-asp", "view-asp"], ["tab-car", "view-car"]];
